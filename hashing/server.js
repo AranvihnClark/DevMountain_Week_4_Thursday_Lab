@@ -1,6 +1,7 @@
 const path = require("path");
 const express = require("express");
 const session = require("express-session");
+const bcrypt = require(`bcryptjs`);
 
 // Mock database to store usernames and passwords by username.
 const db = {
@@ -10,7 +11,7 @@ const db = {
   },
   testhashed: {
     username: "testhashed",
-    password: "$2a$10$7WK77kJZ0qzrcgOoE3MszOWuPz2bzPueuSCePScbQnkKwCUx2045q",
+    password: "$2a$10$qn61ScdBPIqjXNqhlUq50OGVi4wztpuhTJ1v.oYU2rwBz9VtnjDkS",
   },
 };
 
@@ -75,22 +76,56 @@ app.get("/", (req, res) => {
 // Handle user login.
 app.post("/login", (req, res) => {
   // TODO: Get the username and password from form data
+  const {username, password} = req.body;
+  console.log(`username: ${username}, password: ${password}`);
+
+  let keys = Object.keys(db);
   // TODO: Attempt to retrieve the user from the database
   // TODO: If the user exists, check if the password matches the user's password
-  // TODO: Log the user in by storing their username in the session
-  // TODO: Display a success message and redirect to /login/success
+  if(keys.includes(username) && bcrypt.compareSync(password, db[username].password)) {
+       
+      // TODO: Log the user in by storing their username in the session
+      req.session.username = username;
+     
+      // TODO: Display a success message and redirect to /login/success
+      req.session.success = `You logged in successfully`;
+      res.redirect(`/login/success`);
+  } else {
   // TODO: If the user doesn't exist or the password doesn't match, display an error
   //       message and redirect to the homepage
+    req.session.error = "Access denied! Try logging in again or create a new account.";
+    res.redirect("/");
+  }
 });
 
 // Handle user registration.
 app.post("/register", (req, res) => {
   // TODO: Get the username and password from form data
+  const {username, password} = req.body;
+
   // TODO: Check if username already exists in the database
+  let keys = Object.keys(db);
+  if(!keys.includes(username)) {
+
   // TODO: If it doesn't, create a new user and store it in the database
+  let newObj = {
+    username,
+    password: bcrypt.hashSync(password)
+  }
+
+  db[username] = newObj;
   // TODO: Display a success message to the user
+    req.session.success = `You created an account successfully`;
+    console.log(db);
+  }
+
   // TODO: If the user already exists, display an error message
+  else {
+    req.session.error = "The user already exists.";
+  }
+
   // TODO: Either way, redirect to the homepage so they can log in
+  res.redirect("/");
 });
 
 // A restricted route that can only be accessed if the user is logged in.
